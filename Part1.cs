@@ -15,6 +15,13 @@ class RS232Metrol
         const string _sendBeepCommand = "SYSTem:BEEPer";
         const string _sendReadingsCommand = "READ?";
         const string _performSelfTestCommand = "*TST?";
+
+        Dictionary<string, string> _commands = new Dictionary<string, string>();
+        
+        _commands.Add("1",_performSelfTestCommand);
+        _commands.Add("2",_queryBacklightStatusCommand);
+        _commands.Add("3",_sendBeepCommand);
+        _commands.Add("4",_sendReadingsCommand);
         
         
         Thread readThread = new Thread(Read);
@@ -29,7 +36,16 @@ class RS232Metrol
             {
                 PrintInstructions();
                 string? input = Console.ReadLine();
-                _lastCommand = input;
+                try
+                {
+                    _lastCommand = _commands[input];
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                    _lastCommand = "";
+                }
+
                 if (input?.ToLower() == "exit")
                     _continue = false;
 
