@@ -1,10 +1,11 @@
 using System.IO.Ports;
+using System.Runtime.InteropServices.JavaScript;
 
 class RS232Metrol
 {
     static void Main(string[] args)
     {
-        //GREG HANSON METROL RS232 DESIGN EXERCISE - PT1
+        //GREG HANSON METROL RS232 DESIGN EXERCISE - PT3
         SerialPort _serialPort = new SerialPort("COM1", 9600, Parity.None, 8, StopBits.One);
         var _continue = true;
         var _lastCommand = "";
@@ -15,6 +16,13 @@ class RS232Metrol
         const string _sendBeepCommand = "SYSTem:BEEPer";
         const string _sendReadingsCommand = "READ?";
         const string _performSelfTestCommand = "*TST?";
+
+        Dictionary<string, string> _commands = new Dictionary<string, string>();
+        
+        _commands.Add("1",_performSelfTestCommand);
+        _commands.Add("2",_queryBacklightStatusCommand);
+        _commands.Add("3",_sendBeepCommand);
+        _commands.Add("4",_sendReadingsCommand);
         
         
         Thread readThread = new Thread(Read);
@@ -29,7 +37,16 @@ class RS232Metrol
             {
                 PrintInstructions();
                 string? input = Console.ReadLine();
-                _lastCommand = input;
+                try
+                {
+                    _lastCommand = _commands[input];
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                    _lastCommand = "";
+                }
+
                 if (input?.ToLower() == "exit")
                     _continue = false;
 
@@ -65,6 +82,9 @@ class RS232Metrol
                         case(_sendReadingsCommand):
                             var results = FormatResults(ExtractResultsFromString(message));
                             Console.WriteLine(results);
+                            break;
+                        default:
+                            Console.WriteLine("Command not recognised");
                             break;
                     }
                 };
@@ -141,6 +161,21 @@ class RS232Metrol
             if(message == "0") _serialPort.WriteLine(_backlightOnCommand);
             if(message == "1") _serialPort.WriteLine(_backlightOffCommand);
         }
+
+        Dictionary<decimal, DateTime> readings = new Dictionary<decimal, DateTime>();
         
+        DateTime oneHourAgo = DateTime.Now.AddHours(-1);
+        var keysToRemove = readings.Where(pair => pair.Value < oneHourAgo)
+            .Select(pair => pair.Key)
+            .ToList();
+
+        foreach (var key in keysToRemove)
+        {
+            readings.Remove(key);
+        }
+        
+         readings = readings.OrderBy(pair => pair.Value).ToDictionary(pair => pair.Key, pair => pair.Value);
+
+
     }
 }
